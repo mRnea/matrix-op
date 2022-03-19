@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define TESTING 0
-
 // type = 1 for augmented matrix form
 struct Matrix{
 	double* mptr; // matrix pointer
@@ -33,7 +31,7 @@ void multiplyRow(struct Matrix matrix, int row, double multiplier);
 void addRows(struct Matrix matrix, int row1, int row2, double multiplier);
 
 // Finding Row Echelon Form (REF)
-void findPivotAndSimplify(struct Matrix matrix, int column);
+int findPivotAndSimplify(struct Matrix matrix, int pivot_count, int column);
 
 // User actions
 int takeAction();
@@ -98,24 +96,27 @@ void addRows(struct Matrix matrix, int row1, int row2, double multiplier){
 	printMatrix(matrix);
 }
 
-void findPivotAndSimplify(struct Matrix matrix, int column){
-	for (int i = column; i < matrix.row; i++){
+int findPivotAndSimplify(struct Matrix matrix, int pivot_count, int column){
+	int found_pivot = 0;
+	for (int i = pivot_count; i < matrix.row; i++){
 		if (matrix.mptr[matrix.column * i + column] != 0){
-			if (i != column){
-				changeRows(matrix, column, i); 
+			found_pivot = 1;
+			if (i != pivot_count){
+				changeRows(matrix, pivot_count, i); 
 			}
-			if (matrix.mptr[matrix.column * column + column] != 1){
-				multiplyRow(matrix, column, 1 / matrix.mptr[matrix.column * column + column]);
+			if (matrix.mptr[matrix.column * pivot_count + column] != 1){
+				multiplyRow(matrix, pivot_count, 1 / matrix.mptr[matrix.column * pivot_count + column]);
 			}
 			break;
 		}
 	}
 	
-	for (int i = column + 1; i < matrix.row; i++){
+	for (int i = pivot_count + 1; i < matrix.row; i++){
 		if (matrix.mptr[matrix.column * i + column] != 0){
-			addRows(matrix, i, column, -matrix.mptr[matrix.column * i + column]);
+			addRows(matrix, i, pivot_count, -matrix.mptr[matrix.column * i + column]);
 		}
 	}
+	return found_pivot;
 
 }
 
@@ -234,7 +235,7 @@ int doAction(int command){
 	switch (command){
 		case 0:
 			printf("%s", "-1 for termination\n 0 for help\n 1 for addition\n"
-					" 2 for multiplication\n 3 for reduced echelon form\n\n");
+					" 2 for multiplication\n 3 for row echelon form\n\n");
 			break;
 		case -1:
 			return 0;
@@ -257,8 +258,9 @@ int doAction(int command){
 void refAction() {
 	struct Matrix matrix = createMatrix();
 
+	int pivot_count = 0;
 	for (int j = 0; j < matrix.column - 1; j++){
-		findPivotAndSimplify(matrix, j);
+		pivot_count += findPivotAndSimplify(matrix, pivot_count, j);
 	}
 
 	free(matrix.mptr);
