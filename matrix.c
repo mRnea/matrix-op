@@ -31,14 +31,16 @@ void multiplyRow(struct Matrix matrix, int row, double multiplier);
 void addRows(struct Matrix matrix, int row1, int row2, double multiplier);
 
 // Finding Row Echelon Form (REF)
+// and Reduced Row Echelon Form (RREF)
 int findPivotAndSimplify(struct Matrix matrix, int pivot_count, int column);
+void findRref(struct Matrix matrix); // argument must be REF matrix
 
 // User actions
 int takeAction();
 
 void additionAction();
 void multiplicationAction();
-void refAction();
+void refAction(int action_type); // 0 for ref, 1 for rref
 
 int doAction(int command);
 
@@ -118,6 +120,23 @@ int findPivotAndSimplify(struct Matrix matrix, int pivot_count, int column){
 	}
 	return found_pivot;
 
+}
+
+void findRref(struct Matrix matrix){
+	for (int i = matrix.row - 1; i >= 0; i--){
+		int pivot_column;
+		for (int j = 0; j < matrix.column; j++){
+			if (matrix.mptr[matrix.column * i + j] == 1){
+				pivot_column = j;
+				break;
+			}
+		}
+		for (int ii = i - 1; ii >= 0; ii--){
+			if (matrix.mptr[matrix.column * ii + pivot_column] != 0){
+				addRows(matrix, ii, i, -matrix.mptr[matrix.column * ii + pivot_column]);
+			}
+		}
+	}
 }
 
 void takeDimensions(int* row,int* column){
@@ -235,7 +254,8 @@ int doAction(int command){
 	switch (command){
 		case 0:
 			printf("%s", "-1 for termination\n 0 for help\n 1 for addition\n"
-					" 2 for multiplication\n 3 for row echelon form\n\n");
+					" 2 for multiplication\n 3 for row echelon form\n"
+					" 4 for reduced ref\n\n");
 			break;
 		case -1:
 			return 0;
@@ -246,7 +266,10 @@ int doAction(int command){
 			multiplicationAction();
 			break;
 		case 3:
-			refAction();
+			refAction(0);
+			break;
+		case 4:
+			refAction(1);
 			break;
 		default:
 			printf("%s", "Invalid command");
@@ -255,12 +278,16 @@ int doAction(int command){
 	return 1;
 }
 
-void refAction() {
+void refAction(int action_type) {
 	struct Matrix matrix = createMatrix();
+	matrix.type = 1;
 
 	int pivot_count = 0;
 	for (int j = 0; j < matrix.column - 1; j++){
 		pivot_count += findPivotAndSimplify(matrix, pivot_count, j);
+	}
+	if (action_type == 1){
+		findRref(matrix);
 	}
 
 	free(matrix.mptr);
