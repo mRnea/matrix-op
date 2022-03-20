@@ -43,8 +43,8 @@ void findRref(struct Matrix matrix); // argument must be REF matrix
 // User actions
 int takeAction();
 
-void additionAction();
-void multiplicationAction();
+void additionAction(int isRandom);
+void multiplicationAction(int isRandom);
 void refAction(int action_type, int isRandom); // 0 for ref, 1 for rref
 
 int doAction(int command);
