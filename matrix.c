@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+double absVal(double number){
+	return number > 0 ? number : -number;
+}
+
 // type = 1 for augmented matrix form
 struct Matrix{
 	double* mptr; // matrix pointer
@@ -10,7 +14,8 @@ struct Matrix{
 	int type;
 };
 
-struct Matrix createMatrix();
+// 0 for user input values, 1 for random values
+struct Matrix createMatrix(int random, int type);
 
 // Matrix addition and multiplication
 struct Matrix addMatrices(struct Matrix matrix1, struct Matrix matrix2);
@@ -40,7 +45,7 @@ int takeAction();
 
 void additionAction();
 void multiplicationAction();
-void refAction(int action_type); // 0 for ref, 1 for rref
+void refAction(int action_type, int isRandom); // 0 for ref, 1 for rref
 
 int doAction(int command);
 
@@ -59,6 +64,7 @@ int main(){
 }
 
 void printMatrix(struct Matrix matrix){
+	printf("%c", '\n');
 	for (int i = 0; i < matrix.row; i++){
 		for (int j = 0; j < matrix.column; j++){
 			if ((j == matrix.column - 1) && (matrix.type == 1)){
@@ -83,7 +89,7 @@ void changeRows(struct Matrix matrix, int row1, int row2){
 }
 
 void multiplyRow(struct Matrix matrix, int row, double multiplier){
-	printf("r%d -> r%d * %.2f\n\n",row + 1, row + 1, multiplier);
+	printf("r%d  -> r%d * %.2f\n",row + 1, row + 1, multiplier);
 	for (int j = 0; j < matrix.column; j++){
 		matrix.mptr[matrix.column * row + j] *= multiplier;
 	}
@@ -91,7 +97,7 @@ void multiplyRow(struct Matrix matrix, int row, double multiplier){
 }
 
 void addRows(struct Matrix matrix, int row1, int row2, double multiplier){
-	printf("r%d -> r%d + r%d * %.2f\n\n", row1 + 1, row1 + 1, row2 + 1, multiplier);
+	printf("r%d  -> r%d + r%d * %.2f\n", row1 + 1, row1 + 1, row2 + 1, multiplier);
 	for (int j = 0; j < matrix.column; j++){
 		matrix.mptr[matrix.column * row1 + j] += multiplier * matrix.mptr[matrix.column * row2 + j];
 	}
@@ -101,7 +107,7 @@ void addRows(struct Matrix matrix, int row1, int row2, double multiplier){
 int findPivotAndSimplify(struct Matrix matrix, int pivot_count, int column){
 	int found_pivot = 0;
 	for (int i = pivot_count; i < matrix.row; i++){
-		if (matrix.mptr[matrix.column * i + column] != 0){
+		if (absVal(matrix.mptr[matrix.column * i + column]) >= 0.01){
 			found_pivot = 1;
 			if (i != pivot_count){
 				changeRows(matrix, pivot_count, i); 
@@ -140,8 +146,10 @@ void findRref(struct Matrix matrix){
 }
 
 void takeDimensions(int* row,int* column){
-	printf("%s", "Enter row and column: ");
-	scanf("%d %d", row, column);
+	do{
+		printf("%s", "Enter row and column: ");
+		scanf("%d %d", row, column);
+	} while ((*row <= 0) || (*column <= 0));
 }
 
 void takeValues(double* matrix, int row, int column){
@@ -206,21 +214,29 @@ struct Matrix multiplyMatrices(struct Matrix matrix1, struct Matrix matrix2){
 	return result_matrix;
 }
 
-struct Matrix createMatrix(){
+struct Matrix createMatrix(int random, int type){
 	int row, column;
 	takeDimensions(&row, &column);
 
 	double* matrixptr = (double*) malloc(row * column * sizeof(double));
-	takeValues(matrixptr, row, column);
-	struct Matrix matrix = {matrixptr, row, column, 0};
+	struct Matrix matrix = {matrixptr, row, column, type};
+	if (!random){
+		takeValues(matrixptr, row, column);
+	}
+	else if (random){
+		int up_to;
+		printf("%s", "Enter upper limit for values: ");
+		scanf("%d", &up_to);
+		matrixRandomFill(matrix, up_to);
+	}
 
 	return matrix;
 }
 
-void additionAction(){
+void additionAction(int random){
 	
-	struct Matrix matrix_1 = createMatrix();
-	struct Matrix matrix_2 = createMatrix();
+	struct Matrix matrix_1 = createMatrix(random, 0);
+	struct Matrix matrix_2 = createMatrix(random, 0);
 	struct Matrix matrix_result = addMatrices(matrix_1, matrix_2);
 	printMatrix(matrix_result);
 
@@ -229,10 +245,11 @@ void additionAction(){
 	free(matrix_result.mptr);
 }
 
-void multiplicationAction(){
+void multiplicationAction(int random){
 	
-	struct Matrix matrix_1 = createMatrix();
-	struct Matrix matrix_2 = createMatrix();
+	struct Matrix matrix_1 = createMatrix(random, 0);
+	struct Matrix matrix_2 = createMatrix(random, 0);
+
 	struct Matrix matrix_result = multiplyMatrices(matrix_1, matrix_2); 
 	printMatrix(matrix_result);
 
@@ -251,36 +268,39 @@ int takeAction(){
 }
 
 int doAction(int command){
+	static int isRandom = 0;
 	switch (command){
 		case 0:
 			printf("%s", "-1 for termination\n 0 for help\n 1 for addition\n"
 					" 2 for multiplication\n 3 for row echelon form\n"
-					" 4 for reduced ref\n\n");
+					" 4 for reduced ref\n 5 for random values for matrix\n\n");
 			break;
 		case -1:
 			return 0;
 		case 1:
-			additionAction();
+			additionAction(isRandom);
 			break;
 		case 2:
-			multiplicationAction();
+			multiplicationAction(isRandom);
 			break;
 		case 3:
-			refAction(0);
+			refAction(0, isRandom);
 			break;
 		case 4:
-			refAction(1);
+			refAction(1, isRandom);
+			break;
+		case 5:
+			isRandom = (isRandom + 1) % 2;
 			break;
 		default:
-			printf("%s", "Invalid command");
+			printf("%s", "Invalid command\n");
 			break;
 	}
 	return 1;
 }
 
-void refAction(int action_type) {
-	struct Matrix matrix = createMatrix();
-	matrix.type = 1;
+void refAction(int action_type, int random){
+	struct Matrix matrix = createMatrix(random, 1);
 
 	int pivot_count = 0;
 	for (int j = 0; j < matrix.column - 1; j++){
