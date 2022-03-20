@@ -1,0 +1,2 @@
+need to fix some stuff related to floating point arithmetic
+sometimes things get ugly
